@@ -341,20 +341,6 @@ This project is licensed under either of
 
 at your option.
 
----
-
-## TODOs for Maintainers
-
-The following items need confirmation from the Covalent team:
-
-- **Base URL**: Confirm exact production URL for GoldRush API (currently using `https://api.goldrush.dev`)
-- **Endpoint Paths**: Verify exact paths for all endpoints (e.g., `/v1/{chain}/address/{address}/balances_v2/`)
-- **Response Formats**: Align models with actual API response structure
-- **Chain Names**: Confirm supported chain identifiers format
-- **Error Codes**: Map specific API error codes to appropriate error variants
-- **Crate Name**: Finalize crate name and repository URL
-- **Authentication**: Confirm Bearer token format vs other auth methods
-
 ## Links
 
 - **GoldRush API Documentation**: https://goldrush.dev/docs/overview
