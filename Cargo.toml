@@ -3,13 +3,25 @@ name = "goldrush-sdk"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-description = "Rust SDK for GoldRush blockchain data APIs"
-repository = "https://github.com/covalenthq/goldrush-sdk-rs" # placeholder
+description = "Production-ready Rust SDK for GoldRush blockchain data APIs with comprehensive features including caching, rate limiting, circuit breakers, and security enhancements"
+repository = "https://github.com/covalenthq/goldrush-sdk-rs"
+homepage = "https://goldrush.dev"
+documentation = "https://docs.rs/goldrush-sdk"
 authors = ["Covalent <support@covalenthq.com>"]
 readme = "README.md"
 keywords = ["blockchain", "web3", "api", "covalent", "goldrush"]
 categories = ["api-bindings", "web-programming", "cryptography::cryptocurrencies"]
 rust-version = "1.70"
+include = [
+    "src/**/*.rs",
+    "Cargo.toml",
+    "README.md",
+    "LICENSE-MIT",
+    "LICENSE-APACHE",
+    "examples/**/*.rs",
+    "tests/**/*.rs",
+    "benches/**/*.rs"
+]
 
 [dependencies]
 reqwest = { version = "0.11", features = ["json", "gzip", "brotli", "deflate", "rustls-tls"] }
