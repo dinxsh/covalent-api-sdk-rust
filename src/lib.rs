@@ -5,14 +5,14 @@
 //! ## Usage
 //!
 //! ```rust,no_run
-//! use goldrush_sdk::{GoldRushClient, ClientConfig};
+//! use goldrush_sdk::{GoldRushClient, ClientConfig, chains};
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     let client = GoldRushClient::new("your-api-key", ClientConfig::default())?;
 //!     
 //!     let balances = client
-//!         .get_token_balances_for_wallet_address("eth-mainnet", "0x123...", None)
+//!         .get_token_balances_for_wallet_address(chains::ethereum::MAINNET, "0x123...", None)
 //!         .await?;
 //!     
 //!     println!("{:?}", balances);
@@ -28,11 +28,14 @@ mod balances;
 mod transactions;
 mod nfts;
 
+/// Chain constants for commonly used networks
+pub mod chains;
+
 pub use client::{GoldRushClient, ClientConfig};
-pub use error::Error;
+pub use error::{Error, Result};
 pub use balances::BalancesOptions;
-pub use transactions::TxOptions;
-pub use nfts::NftOptions;
+pub use transactions::{TxOptions, TransactionsPageIter};
+pub use nfts::{NftOptions, NftsPageIter};
 
 pub use models::{
     balances::{BalanceItem, BalancesData, BalancesResponse},
