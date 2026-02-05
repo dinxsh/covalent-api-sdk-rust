@@ -1,5 +1,6 @@
-use crate::Error;
+use crate::{Error, RateLimitConfig, CacheConfig, MetricsCollector, validation::Validator};
 use reqwest::Client as HttpClient;
+use std::sync::Arc;
 use std::time::Duration;
 
 /// Configuration options for the GoldRush client.
@@ -17,6 +18,24 @@ pub struct ClientConfig {
     
     /// User agent string for requests.
     pub user_agent: String,
+    
+    /// Rate limiting configuration.
+    pub rate_limit: RateLimitConfig,
+    
+    /// Caching configuration.
+    pub cache: CacheConfig,
+    
+    /// Enable request/response logging.
+    pub enable_logging: bool,
+    
+    /// Enable metrics collection.
+    pub enable_metrics: bool,
+    
+    /// Connection pool size.
+    pub connection_pool_size: usize,
+    
+    /// Keep-alive timeout for connections.
+    pub keep_alive_timeout: Duration,
 }
 
 impl Default for ClientConfig {
@@ -27,6 +46,12 @@ impl Default for ClientConfig {
             timeout: Duration::from_secs(30),
             max_retries: 3,
             user_agent: format!("goldrush-sdk-rs/{}", env!("CARGO_PKG_VERSION")),
+            rate_limit: RateLimitConfig::default(),
+            cache: CacheConfig::default(),
+            enable_logging: true,
+            enable_metrics: true,
+            connection_pool_size: 10,
+            keep_alive_timeout: Duration::from_secs(90),
         }
     }
 }
@@ -64,6 +89,7 @@ pub struct GoldRushClient {
     pub(crate) http: HttpClient,
     pub(crate) api_key: String,
     pub(crate) config: ClientConfig,
+    pub(crate) metrics: Option<Arc<MetricsCollector>>,
 }
 
 impl GoldRushClient {
@@ -84,16 +110,33 @@ impl GoldRushClient {
     /// ```
     pub fn new<S: Into<String>>(api_key: S, config: ClientConfig) -> Result<Self, Error> {
         let api_key = api_key.into();
-        if api_key.trim().is_empty() {
-            return Err(Error::MissingApiKey);
-        }
+        
+        // Validate API key
+        Validator::validate_api_key(&api_key)?;
+        
+        // Validate base URL
+        Validator::validate_url(&config.base_url)?;
 
         let http = HttpClient::builder()
             .user_agent(&config.user_agent)
             .timeout(config.timeout)
+            .pool_max_idle_per_host(config.connection_pool_size)
+            .pool_idle_timeout(config.keep_alive_timeout)
+            .tcp_keepalive(Some(Duration::from_secs(60)))
             .build()?;
 
-        Ok(Self { http, api_key, config })
+        let metrics = if config.enable_metrics {
+            Some(Arc::new(MetricsCollector::new()))
+        } else {
+            None
+        };
+
+        Ok(Self { 
+            http, 
+            api_key, 
+            config, 
+            metrics 
+        })
     }
 
     /// Create a new GoldRush client with default configuration.
@@ -112,5 +155,10 @@ impl GoldRushClient {
     /// ```
     pub fn with_key<S: Into<String>>(api_key: S) -> Result<Self, Error> {
         Self::new(api_key, ClientConfig::default())
+    }
+
+    /// Get access to the metrics collector (if enabled).
+    pub fn metrics(&self) -> Option<&Arc<MetricsCollector>> {
+        self.metrics.as_ref()
     }
 }
