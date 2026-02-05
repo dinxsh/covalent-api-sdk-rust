@@ -1,0 +1,38 @@
+[package]
+name = "goldrush-sdk"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Rust SDK for GoldRush blockchain data APIs"
+repository = "https://github.com/covalenthq/goldrush-sdk-rs" # placeholder
+authors = ["Covalent <support@covalenthq.com>"]
+readme = "README.md"
+keywords = ["blockchain", "web3", "api", "covalent", "goldrush"]
+categories = ["api-bindings", "web-programming", "cryptography::cryptocurrencies"]
+rust-version = "1.70"
+
+[dependencies]
+reqwest = { version = "0.11", features = ["json", "gzip", "brotli", "deflate", "rustls-tls"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"], optional = true }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+[features]
+default = ["tokio-runtime"]
+tokio-runtime = ["tokio"]
+
+[[example]]
+name = "balances"
+required-features = ["tokio-runtime"]
+
+[[example]]
+name = "transactions"
+required-features = ["tokio-runtime"]
+
+[[example]]
+name = "nfts"
+required-features = ["tokio-runtime"]
