@@ -17,13 +17,21 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "1"
 tokio = { version = "1", features = ["macros", "rt-multi-thread"], optional = true }
+tracing = "0.1"
+tracing-futures = "0.2"
+uuid = { version = "1.0", features = ["v4"] }
+moka = { version = "0.12", features = ["future"], optional = true }
+backoff = "0.4"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+criterion = { version = "0.5", features = ["html_reports"] }
 
 [features]
 default = ["tokio-runtime"]
 tokio-runtime = ["tokio"]
+caching = ["moka"]
+full = ["tokio-runtime", "caching"]
 
 [[example]]
 name = "balances"
@@ -33,6 +41,6 @@ required-features = ["tokio-runtime"]
 name = "transactions"
 required-features = ["tokio-runtime"]
 
-[[example]]
-name = "nfts"
-required-features = ["tokio-runtime"]
+[[bench]]
+name = "sdk_benchmarks"
+harness = false
