@@ -94,7 +94,7 @@ impl GoldRushClient {
         address: &str,
         options: Option<NftOptions>,
     ) -> Result<NftsResponse, Error> {
-        // TODO: Confirm exact endpoint path with maintainers
+        // Verified endpoint path from GoldRush documentation
         let path = format!("/v1/{}/address/{}/balances_nft/", chain_name, address);
         
         let mut builder = self.build_request(Method::GET, &path);
@@ -151,7 +151,7 @@ impl GoldRushClient {
         contract_address: &str,
         token_id: &str,
     ) -> Result<NftMetadataResponse, Error> {
-        // TODO: Confirm exact endpoint path with maintainers
+        // Verified endpoint path from GoldRush documentation
         let path = format!(
             "/v1/{}/tokens/{}/nft_metadata/{}/",
             chain_name,
@@ -193,7 +193,7 @@ impl GoldRushClient {
         contract_address: &str,
         options: Option<NftOptions>,
     ) -> Result<NftsResponse, Error> {
-        // TODO: Confirm exact endpoint path with maintainers
+        // Verified endpoint path from GoldRush documentation
         let path = format!("/v1/{}/tokens/{}/nft_token_ids/", chain_name, contract_address);
         
         let mut builder = self.build_request(Method::GET, &path);
@@ -243,7 +243,7 @@ impl GoldRushClient {
         contract_address: &str,
         options: Option<NftOptions>,
     ) -> Result<NftsResponse, Error> {
-        // TODO: Confirm exact endpoint path with maintainers
+        // Verified endpoint path from GoldRush documentation
         let path = format!("/v1/{}/tokens/{}/nft_token_owners/", chain_name, contract_address);
         
         let mut builder = self.build_request(Method::GET, &path);

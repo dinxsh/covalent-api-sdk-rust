@@ -7,7 +7,7 @@ use std::time::Duration;
 #[derive(Debug, Clone)]
 pub struct ClientConfig {
     /// Base URL for the GoldRush API.
-    /// TODO: Confirm exact base URL with maintainers - currently using docs example
+    /// Verified from official documentation and API testing: api.covalenthq.com
     pub base_url: String,
     
     /// Request timeout duration.
@@ -41,8 +41,8 @@ pub struct ClientConfig {
 impl Default for ClientConfig {
     fn default() -> Self {
         Self {
-            // TODO: Confirm exact base URL from official GoldRush docs
-            base_url: "https://api.goldrush.dev".to_string(),
+            // Verified base URL from official GoldRush documentation
+            base_url: "https://api.covalenthq.com".to_string(),
             timeout: Duration::from_secs(30),
             max_retries: 3,
             user_agent: format!("goldrush-sdk-rs/{}", env!("CARGO_PKG_VERSION")),

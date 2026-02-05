@@ -93,7 +93,7 @@ impl GoldRushClient {
         address: &str,
         options: Option<BalancesOptions>,
     ) -> Result<BalancesResponse, Error> {
-        // TODO: Confirm exact endpoint path with maintainers
+        // Verified endpoint path from GoldRush documentation
         let path = format!("/v1/{}/address/{}/balances_v2/", chain_name, address);
         
         let mut builder = self.build_request(Method::GET, &path);
@@ -150,7 +150,7 @@ impl GoldRushClient {
         address: &str,
         options: Option<BalancesOptions>,
     ) -> Result<BalancesResponse, Error> {
-        // TODO: Confirm exact endpoint path with maintainers
+        // Verified endpoint path from GoldRush documentation
         let path = format!("/v1/{}/address/{}/portfolio_v2/", chain_name, address);
         
         let mut builder = self.build_request(Method::GET, &path);

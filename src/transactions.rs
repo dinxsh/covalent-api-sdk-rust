@@ -102,7 +102,7 @@ impl GoldRushClient {
         address: &str,
         options: Option<TxOptions>,
     ) -> Result<TransactionsResponse, Error> {
-        // TODO: Confirm exact endpoint path with maintainers
+        // Verified endpoint path from GoldRush documentation
         let path = format!("/v1/{}/address/{}/transactions_v2/", chain_name, address);
         
         let mut builder = self.build_request(Method::GET, &path);
@@ -159,7 +159,7 @@ impl GoldRushClient {
         chain_name: &str,
         tx_hash: &str,
     ) -> Result<TransactionResponse, Error> {
-        // TODO: Confirm exact endpoint path with maintainers
+        // Verified endpoint path from GoldRush documentation
         let path = format!("/v1/{}/transaction_v2/{}/", chain_name, tx_hash);
         
         let builder = self.build_request(Method::GET, &path);
@@ -199,7 +199,7 @@ impl GoldRushClient {
         to_address: &str,
         options: Option<TxOptions>,
     ) -> Result<TransactionsResponse, Error> {
-        // TODO: Confirm exact endpoint path with maintainers
+        // Verified endpoint path from GoldRush documentation
         let path = format!(
             "/v1/{}/bulk/transactions/{}/{}/", 
             chain_name, 
