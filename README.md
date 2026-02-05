@@ -252,7 +252,7 @@ loop {
 ### Using Iterator Helper
 
 ```rust
-use goldrush_sdk::transactions::TransactionsPageIter;
+use goldrush_sdk::{TransactionsPageIter, TxOptions};
 
 let options = TxOptions::new().page_size(100);
 let mut iter = TransactionsPageIter::new(&client, "eth-mainnet", address, options);
