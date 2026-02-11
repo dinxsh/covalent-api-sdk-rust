@@ -1,9 +1,9 @@
 use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
 use goldrush_sdk::{
-    GoldRushClient, ClientConfig, MetricsCollector, CacheConfig, MemoryCache,
+    GoldRushClient, ClientConfig, MetricsCollector, MemoryCache,
     Validator, Sanitizer, RateLimiter, RateLimitConfig,
-    chains
 };
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::runtime::Runtime;
 
@@ -120,7 +120,7 @@ fn bench_client_operations(c: &mut Criterion) {
     group.bench_function("client_creation", |b| {
         b.iter(|| {
             let config = ClientConfig::default();
-            let _ = GoldRushClient::new("test_api_key_1234567890", config);
+            let _ = GoldRushClient::new("cqt_abcdefghij1234567890abcdef", config);
         })
     });
     
@@ -203,30 +203,33 @@ fn bench_concurrency(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
     let mut group = c.benchmark_group("concurrency");
     
-    let cache: MemoryCache<String> = MemoryCache::new(Duration::from_secs(60), 10000);
-    
+    let cache: Arc<MemoryCache<String>> = Arc::new(MemoryCache::new(Duration::from_secs(60), 10000));
+
     for threads in [1, 2, 4, 8, 16] {
         group.bench_with_input(
             BenchmarkId::new("concurrent_cache_operations", threads),
             &threads,
             |b, &threads| {
-                b.to_async(&rt).iter(|| async {
-                    let handles: Vec<_> = (0..threads)
-                        .map(|i| {
-                            let cache = &cache;
-                            tokio::spawn(async move {
-                                for j in 0..10 {
-                                    let key = format!("key_{}_{}", i, j);
-                                    let value = format!("value_{}_{}", i, j);
-                                    cache.set(key.clone(), value).await;
-                                    let _ = cache.get(&key).await;
-                                }
+                b.to_async(&rt).iter(|| {
+                    let cache = Arc::clone(&cache);
+                    async move {
+                        let handles: Vec<_> = (0..threads)
+                            .map(|i| {
+                                let cache = Arc::clone(&cache);
+                                tokio::spawn(async move {
+                                    for j in 0..10 {
+                                        let key = format!("key_{}_{}", i, j);
+                                        let value = format!("value_{}_{}", i, j);
+                                        cache.set(key.clone(), value).await;
+                                        let _ = cache.get(&key).await;
+                                    }
+                                })
                             })
-                        })
-                        .collect();
-                    
-                    for handle in handles {
-                        handle.await.unwrap();
+                            .collect();
+
+                        for handle in handles {
+                            handle.await.unwrap();
+                        }
                     }
                 });
             },

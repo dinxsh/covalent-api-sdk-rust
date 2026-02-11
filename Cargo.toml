@@ -1,6 +1,6 @@
 [package]
 name = "goldrush-sdk"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Rust SDK for all GoldRush blockchain data APIs"
@@ -37,7 +37,7 @@ backoff = "0.4"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.5", features = ["html_reports", "async_tokio"] }
 
 [features]
 default = ["tokio-runtime"]
@@ -51,6 +51,26 @@ required-features = ["tokio-runtime"]
 
 [[example]]
 name = "transactions"
+required-features = ["tokio-runtime"]
+
+[[example]]
+name = "nfts"
+required-features = ["tokio-runtime"]
+
+[[example]]
+name = "base_service"
+required-features = ["tokio-runtime"]
+
+[[example]]
+name = "pricing"
+required-features = ["tokio-runtime"]
+
+[[example]]
+name = "nft_market"
+required-features = ["tokio-runtime"]
+
+[[example]]
+name = "multi_chain"
 required-features = ["tokio-runtime"]
 
 [[bench]]
