@@ -1,2 +1,1 @@
-pub mod request;
-pub mod retry;
+pub(crate) mod query;

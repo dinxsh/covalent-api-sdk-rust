@@ -1,25 +1,62 @@
-use crate::{Error, GoldRushClient};
-use reqwest::{RequestBuilder, StatusCode};
+//! Service modules for the GoldRush SDK.
+//!
+//! Each service groups related API endpoints together.
+
+pub mod balance_service;
+pub mod transaction_service;
+pub mod nft_service;
+pub mod base_service;
+pub mod pricing_service;
+pub mod security_service;
+pub mod bitcoin_service;
+pub mod all_chains_service;
+
+use crate::{ClientConfig, Error, MetricsCollector};
+use reqwest::{Client as HttpClient, Method, RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
+use std::sync::Arc;
 use std::time::Duration;
 
-impl GoldRushClient {
+/// Shared context for all service implementations.
+pub(crate) struct ServiceContext {
+    pub http: HttpClient,
+    pub api_key: String,
+    pub config: ClientConfig,
+    pub metrics: Option<Arc<MetricsCollector>>,
+}
+
+impl ServiceContext {
+    /// Build a request with the appropriate authentication and headers.
+    pub fn build_request(&self, method: Method, path: &str) -> RequestBuilder {
+        let url = format!(
+            "{}/{}",
+            self.config.base_url.trim_end_matches('/'),
+            path.trim_start_matches('/')
+        );
+
+        self.http
+            .request(method, &url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Accept", "application/json")
+            .header("Content-Type", "application/json")
+    }
+
+    /// Build a GET request with the given path.
+    pub fn get(&self, path: &str) -> RequestBuilder {
+        self.build_request(Method::GET, path)
+    }
+
     /// Send a request with retry logic for transient failures.
-    ///
-    /// This method will retry requests on certain HTTP status codes and network errors
-    /// with exponential backoff.
-    pub(crate) async fn send_with_retry<T>(&self, builder: RequestBuilder) -> Result<T, Error>
+    pub async fn send_with_retry<T>(&self, builder: RequestBuilder) -> Result<T, Error>
     where
         T: DeserializeOwned,
     {
         let mut attempt = 0u8;
 
         loop {
-            // Clone the request builder for retry attempts
             let request = match builder.try_clone() {
                 Some(req) => req,
                 None => {
-                    // Return a custom error since we can't clone the request
                     return Err(Error::Config("Failed to clone request for retry".to_string()));
                 }
             };
@@ -32,8 +69,7 @@ impl GoldRushClient {
                     if attempt > self.config.max_retries {
                         return Err(Error::Http(e));
                     }
-                    
-                    // Only retry on certain error types
+
                     if self.should_retry_error(&e) {
                         let backoff_ms = self.calculate_backoff(attempt);
                         tokio::time::sleep(Duration::from_millis(backoff_ms)).await;
@@ -44,27 +80,25 @@ impl GoldRushClient {
                 }
                 Ok(response) => {
                     let status = response.status();
-                    
-                    // Check if we should retry based on status code
+
                     if self.should_retry_status(status) {
                         attempt += 1;
                         if attempt > self.config.max_retries {
                             let text = response.text().await.unwrap_or_default();
-                            return self.handle_error_response(status, text).await;
+                            return self.handle_error_response(status, text);
                         }
-                        
+
                         let backoff_ms = self.calculate_backoff(attempt);
                         tokio::time::sleep(Duration::from_millis(backoff_ms)).await;
                         continue;
                     }
 
                     let text = response.text().await?;
-                    
+
                     if !status.is_success() {
-                        return self.handle_error_response(status, text).await;
+                        return self.handle_error_response(status, text);
                     }
 
-                    // Parse successful response
                     match serde_json::from_str::<T>(&text) {
                         Ok(parsed) => return Ok(parsed),
                         Err(e) => return Err(Error::Serialization(e)),
@@ -74,36 +108,30 @@ impl GoldRushClient {
         }
     }
 
-    /// Determine if an error should be retried.
     fn should_retry_error(&self, error: &reqwest::Error) -> bool {
-        // Retry on timeout, connection errors, and certain other network issues
         error.is_timeout() || error.is_connect() || error.is_request()
     }
 
-    /// Determine if a status code should trigger a retry.
     fn should_retry_status(&self, status: StatusCode) -> bool {
-        // Retry on 5xx server errors and 429 rate limiting
         status.is_server_error() || status == StatusCode::TOO_MANY_REQUESTS
     }
 
-    /// Calculate exponential backoff delay in milliseconds.
     fn calculate_backoff(&self, attempt: u8) -> u64 {
-        // Base delay of 200ms, exponentially increasing with jitter
         let base_delay = 200u64;
         let exponential_delay = base_delay * 2_u64.pow((attempt - 1) as u32);
-        
-        // Add some jitter to avoid thundering herd
         let jitter = (attempt as u64) * 50;
-        
-        std::cmp::min(exponential_delay + jitter, 5000) // Cap at 5 seconds
+        std::cmp::min(exponential_delay + jitter, 5000)
     }
 
-    /// Handle error responses from the API.
-    async fn handle_error_response<T>(&self, status: StatusCode, text: String) -> Result<T, Error> {
-        // Try to parse the error response to get structured error information
-        let (code, message) = if let Ok(error_envelope) = serde_json::from_str::<crate::models::ApiErrorEnvelope>(&text) {
+    fn handle_error_response<T>(&self, status: StatusCode, text: String) -> Result<T, Error> {
+        let (code, message) = if let Ok(error_envelope) =
+            serde_json::from_str::<crate::models::ApiErrorEnvelope>(&text)
+        {
             if let Some(api_error) = error_envelope.error {
-                (api_error.code, api_error.message.unwrap_or_else(|| text.clone()))
+                (
+                    api_error.code,
+                    api_error.message.unwrap_or_else(|| text.clone()),
+                )
             } else {
                 (None, text.clone())
             }
@@ -118,3 +146,12 @@ impl GoldRushClient {
         })
     }
 }
+
+pub use balance_service::BalanceService;
+pub use transaction_service::TransactionService;
+pub use nft_service::NftService;
+pub use base_service::BaseService;
+pub use pricing_service::PricingService;
+pub use security_service::SecurityService;
+pub use bitcoin_service::BitcoinService;
+pub use all_chains_service::AllChainsService;
