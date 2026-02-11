@@ -1,12 +1,12 @@
-use goldrush_sdk::{GoldRushClient, ClientConfig, NftOptions};
+use goldrush_sdk::{GoldRushClient, ClientConfig, Chain, NftOptions};
 use std::env;
 
 /// Example demonstrating how to fetch NFTs for a wallet address.
-/// 
+///
 /// Usage:
 ///   GOLDRUSH_API_KEY=your_api_key cargo run --example nfts
 ///   GOLDRUSH_API_KEY=your_api_key cargo run --example nfts -- 0x742d35Cc6634C0532925a3b8D186dC8b7B3e4fe
-/// 
+///
 /// If no address is provided, uses a default demo address.
 
 #[tokio::main]
@@ -22,25 +22,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(String::as_str)
         .unwrap_or("0xfc43f5f9dd45258b3aff31bdbe6561d97e8b71de");
 
-    println!("🔗 Creating GoldRush client...");
+    println!("Creating GoldRush client...");
     let client = GoldRushClient::new(api_key, ClientConfig::default())?;
 
     // Example 1: Basic NFT query
-    println!("\n🖼️  Fetching NFTs for address: {}", address);
-    
+    println!("\nFetching NFTs for address: {}", address);
+
     let nfts = client
-        .get_nfts_for_address("eth-mainnet", address, None)
+        .nft_service()
+        .get_nfts_for_address(Chain::EthereumMainnet, address, None)
         .await?;
 
     if let Some(data) = nfts.data {
         println!("Found {} NFTs", data.items.len());
-        
+
         for (i, nft) in data.items.iter().take(5).enumerate() {
             let collection = nft.contract_name.as_deref()
                 .or(nft.contract_ticker_symbol.as_deref())
                 .unwrap_or("Unknown Collection");
             let balance = nft.token_balance.as_deref().unwrap_or("1");
-            
+
             println!(
                 "  {}: {} #{} ({}x) - {}",
                 i + 1,
@@ -50,31 +51,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &nft.contract_address[..8]
             );
         }
-        
+
         if data.items.len() > 5 {
             println!("  ... and {} more NFTs", data.items.len() - 5);
         }
     }
 
     // Example 2: Filtered NFT query with metadata
-    println!("\n🎯 Fetching NFTs with metadata (no spam)...");
-    
+    println!("\nFetching NFTs with metadata (no spam)...");
+
     let options = NftOptions::new()
         .page_size(5)
         .with_metadata(true)
         .no_spam(true);
 
     let filtered_nfts = client
-        .get_nfts_for_address("eth-mainnet", address, Some(options))
+        .nft_service()
+        .get_nfts_for_address(Chain::EthereumMainnet, address, Some(options))
         .await?;
 
     if let Some(data) = filtered_nfts.data {
         println!("Found {} non-spam NFTs with metadata", data.items.len());
-        
+
         for (i, nft) in data.items.iter().enumerate() {
             let collection = nft.contract_name.as_deref().unwrap_or("Unknown");
             println!("  {}: {} #{}", i + 1, collection, nft.token_id);
-            
+
             if let Some(nft_data) = &nft.nft_data {
                 if let Some(external_data) = &nft_data.external_data {
                     if let Some(name) = &external_data.name {
@@ -88,7 +90,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         };
                         println!("    Description: {}", short_desc);
                     }
-                    
+
                     if let Some(attributes) = &external_data.attributes {
                         println!("    Attributes: {} traits", attributes.len());
                         for attr in attributes.iter().take(3) {
@@ -104,11 +106,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Example 3: Get metadata for a specific NFT
-    println!("\n🔍 Getting metadata for a specific NFT (Bored Ape #1)...");
-    
+    println!("\nGetting metadata for a specific NFT (Bored Ape #1)...");
+
     match client
+        .nft_service()
         .get_nft_metadata(
-            "eth-mainnet",
+            Chain::EthereumMainnet,
             "0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d", // BAYC contract
             "1"
         )
@@ -120,11 +123,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     println!("NFT Metadata:");
                     println!("  Contract: {}", metadata.contract_address);
                     println!("  Token ID: {}", metadata.token_id);
-                    
+
                     if let Some(uri) = &metadata.token_uri {
                         println!("  Token URI: {}", uri);
                     }
-                    
+
                     if let Some(external_data) = &metadata.external_data {
                         if let Some(name) = &external_data.name {
                             println!("  Name: {}", name);
@@ -133,7 +136,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             println!("  Image: {}", image);
                         }
                     }
-                    
+
                     if let Some(cached_url) = &metadata.asset_cached_url {
                         println!("  Cached image: {}", cached_url);
                     }
@@ -146,13 +149,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Example 4: Get NFTs for a collection
-    println!("\n📚 Getting NFTs for Bored Ape Yacht Club collection...");
-    
+    println!("\nGetting NFTs for Bored Ape Yacht Club collection...");
+
     let collection_options = NftOptions::new().page_size(5);
-    
+
     match client
+        .nft_service()
         .get_nfts_for_collection(
-            "eth-mainnet",
+            Chain::EthereumMainnet,
             "0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d",
             Some(collection_options)
         )
@@ -171,34 +175,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Example 5: Get NFT owners for a collection
-    println!("\n👥 Getting owners for Bored Ape Yacht Club...");
-    
+    // Example 5: Check ownership in an NFT collection
+    println!("\nChecking NFT ownership...");
+
     match client
-        .get_nft_owners_for_collection(
-            "eth-mainnet",
+        .nft_service()
+        .check_ownership_in_nft(
+            Chain::EthereumMainnet,
+            address,
             "0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d",
-            Some(NftOptions::new().page_size(5))
         )
         .await
     {
         Ok(response) => {
-            println!("Got NFT owners response (endpoint structure may vary)");
+            if let Some(data) = response.data {
+                println!("Is owner: {:?}", data.is_owner);
+            }
         }
         Err(e) => {
-            println!("Could not fetch NFT owners: {:?}", e);
+            println!("Ownership check error: {:?}", e);
         }
     }
 
     // Example 6: NFTs on different chains
-    println!("\n🌐 Checking NFTs on Polygon...");
-    
+    println!("\nChecking NFTs on Polygon...");
+
     let polygon_options = NftOptions::new()
         .page_size(3)
         .no_spam(true);
-    
+
     match client
-        .get_nfts_for_address("matic-mainnet", address, Some(polygon_options))
+        .nft_service()
+        .get_nfts_for_address(Chain::PolygonMainnet, address, Some(polygon_options))
         .await
     {
         Ok(response) => {
@@ -219,28 +227,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Example 7: Group NFTs by collection
     if let Ok(response) = client
-        .get_nfts_for_address("eth-mainnet", address, Some(NftOptions::new().page_size(20)))
+        .nft_service()
+        .get_nfts_for_address(Chain::EthereumMainnet, address, Some(NftOptions::new().page_size(20)))
         .await
     {
         if let Some(data) = response.data {
-            println!("\n📊 NFT Collection Summary:");
-            
+            println!("\nNFT Collection Summary:");
+
             let mut collections = std::collections::HashMap::new();
             for nft in &data.items {
                 let collection_name = nft.contract_name.as_deref()
                     .unwrap_or_else(|| nft.contract_ticker_symbol.as_deref().unwrap_or("Unknown"));
                 *collections.entry(collection_name).or_insert(0) += 1;
             }
-            
+
             let mut collection_counts: Vec<_> = collections.into_iter().collect();
             collection_counts.sort_by(|a, b| b.1.cmp(&a.1));
-            
+
             for (collection, count) in collection_counts.iter().take(10) {
                 println!("  {}: {} NFTs", collection, count);
             }
         }
     }
 
-    println!("\n✅ NFT examples completed!");
+    println!("\nNFT examples completed!");
     Ok(())
 }
