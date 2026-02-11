@@ -1,7 +1,7 @@
-use goldrush_sdk::{GoldRushClient, ClientConfig, TxOptions, Error};
+use goldrush_sdk::{GoldRushClient, ClientConfig, Chain, TxOptions, Error};
 
 /// Integration tests for the transactions service.
-/// 
+///
 /// These tests require a valid API key set as the GOLDRUSH_API_KEY environment variable.
 
 fn get_test_client() -> Option<GoldRushClient> {
@@ -20,8 +20,9 @@ async fn test_get_transactions() {
     };
 
     let result = client
+        .transaction_service()
         .get_all_transactions_for_address(
-            "eth-mainnet",
+            Chain::EthereumMainnet,
             "0xfc43f5f9dd45258b3aff31bdbe6561d97e8b71de",
             None
         )
@@ -31,8 +32,8 @@ async fn test_get_transactions() {
         Ok(response) => {
             assert!(response.data.is_some());
             let data = response.data.unwrap();
-            println!("✓ Transactions response received: {} items", data.items.len());
-            
+            println!("Transactions response received: {} items", data.items.len());
+
             if !data.items.is_empty() {
                 let tx = &data.items[0];
                 assert!(!tx.tx_hash.is_empty());
@@ -41,7 +42,7 @@ async fn test_get_transactions() {
             }
         }
         Err(Error::Api { status: 401, .. }) => {
-            println!("! Authentication failed - check your API key");
+            println!("Authentication failed - check your API key");
         }
         Err(e) => {
             panic!("Unexpected error: {:?}", e);
@@ -58,11 +59,12 @@ async fn test_get_transactions_with_options() {
     let options = TxOptions::new()
         .page_size(3)
         .quote_currency("USD")
-        .with_log_events(false);
+        .no_logs(true);
 
     let result = client
+        .transaction_service()
         .get_all_transactions_for_address(
-            "eth-mainnet",
+            Chain::EthereumMainnet,
             "0xfc43f5f9dd45258b3aff31bdbe6561d97e8b71de",
             Some(options)
         )
@@ -72,11 +74,11 @@ async fn test_get_transactions_with_options() {
         Ok(response) => {
             assert!(response.data.is_some());
             let data = response.data.unwrap();
-            assert!(data.items.len() <= 3); // Should respect page_size
-            println!("✓ Filtered transactions response: {} items", data.items.len());
+            assert!(data.items.len() <= 3);
+            println!("Filtered transactions response: {} items", data.items.len());
         }
         Err(Error::Api { status: 401, .. }) => {
-            println!("! Authentication failed - check your API key");
+            println!("Authentication failed - check your API key");
         }
         Err(e) => {
             panic!("Unexpected error: {:?}", e);
@@ -90,11 +92,11 @@ async fn test_get_single_transaction() {
         return;
     };
 
-    // Use a known transaction hash
     let known_tx = "0x88df016429689c079f3b2f6ad39fa052532c56795b733da78a91ebe6a713944b";
-    
+
     let result = client
-        .get_transaction("eth-mainnet", known_tx)
+        .transaction_service()
+        .get_transaction(Chain::EthereumMainnet, known_tx, None)
         .await;
 
     match result {
@@ -102,13 +104,13 @@ async fn test_get_single_transaction() {
             assert!(response.data.is_some());
             let tx = response.data.unwrap();
             assert_eq!(tx.tx_hash.to_lowercase(), known_tx.to_lowercase());
-            println!("✓ Single transaction response received: {}", tx.tx_hash);
+            println!("Single transaction response received: {}", tx.tx_hash);
         }
         Err(Error::Api { status: 401, .. }) => {
-            println!("! Authentication failed - check your API key");
+            println!("Authentication failed - check your API key");
         }
         Err(Error::Api { status: 404, .. }) => {
-            println!("! Transaction not found - endpoint might work differently");
+            println!("Transaction not found - endpoint might work differently");
         }
         Err(e) => {
             println!("Transaction lookup error (may be expected): {:?}", e);
@@ -117,37 +119,37 @@ async fn test_get_single_transaction() {
 }
 
 #[tokio::test]
-async fn test_transactions_between_addresses() {
+async fn test_get_transaction_summary() {
     let Some(client) = get_test_client() else {
         return;
     };
 
     let result = client
-        .get_transactions_between_addresses(
-            "eth-mainnet",
+        .transaction_service()
+        .get_transaction_summary(
+            Chain::EthereumMainnet,
             "0xfc43f5f9dd45258b3aff31bdbe6561d97e8b71de",
-            "0xa0b86a33e6441e6b32f6adaa51a3fc6f1b6a3b9a",
             None
         )
         .await;
 
     match result {
         Ok(response) => {
-            println!("✓ Transactions between addresses response received");
+            println!("Transaction summary response received");
+            if let Some(data) = response.data {
+                println!("  Summary items: {}", data.items.len());
+            }
         }
         Err(Error::Api { status: 401, .. }) => {
-            println!("! Authentication failed - check your API key");
-        }
-        Err(Error::Api { status: 404, .. }) => {
-            println!("! Bulk transactions endpoint not found - might not be available");
+            println!("Authentication failed - check your API key");
         }
         Err(e) => {
-            println!("Bulk transactions error (may be expected): {:?}", e);
+            println!("Transaction summary error (may be expected): {:?}", e);
         }
     }
 }
 
-#[tokio::test] 
+#[tokio::test]
 async fn test_transaction_pagination() {
     let Some(client) = get_test_client() else {
         return;
@@ -158,8 +160,9 @@ async fn test_transaction_pagination() {
         .page_number(0);
 
     let result = client
+        .transaction_service()
         .get_all_transactions_for_address(
-            "eth-mainnet",
+            Chain::EthereumMainnet,
             "0xfc43f5f9dd45258b3aff31bdbe6561d97e8b71de",
             Some(options)
         )
@@ -168,14 +171,14 @@ async fn test_transaction_pagination() {
     match result {
         Ok(response) => {
             if let Some(pagination) = response.pagination {
-                println!("✓ Pagination info received:");
+                println!("Pagination info received:");
                 println!("  Has more: {:?}", pagination.has_more);
                 println!("  Page number: {:?}", pagination.page_number);
                 println!("  Total count: {:?}", pagination.total_count);
             }
         }
         Err(Error::Api { status: 401, .. }) => {
-            println!("! Authentication failed - check your API key");
+            println!("Authentication failed - check your API key");
         }
         Err(e) => {
             panic!("Unexpected error: {:?}", e);
