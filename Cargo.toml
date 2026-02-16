@@ -35,15 +35,23 @@ uuid = { version = "1.0", features = ["v4"] }
 moka = { version = "0.12", features = ["future"], optional = true }
 backoff = "0.4"
 
+# Streaming dependencies
+tokio-tungstenite = { version = "0.21", features = ["native-tls"], optional = true }
+futures-util = { version = "0.3", optional = true }
+async-stream = { version = "0.3", optional = true }
+
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 criterion = { version = "0.5", features = ["html_reports", "async_tokio"] }
+tracing-subscriber = "0.3"
+futures-util = "0.3"
 
 [features]
 default = ["tokio-runtime"]
 tokio-runtime = ["tokio"]
 caching = ["moka"]
-full = ["tokio-runtime", "caching"]
+streaming = ["tokio-tungstenite", "futures-util", "async-stream", "tokio"]
+full = ["tokio-runtime", "caching", "streaming"]
 
 [[example]]
 name = "balances"
@@ -72,6 +80,10 @@ required-features = ["tokio-runtime"]
 [[example]]
 name = "multi_chain"
 required-features = ["tokio-runtime"]
+
+[[example]]
+name = "streaming"
+required-features = ["streaming"]
 
 [[bench]]
 name = "sdk_benchmarks"

@@ -190,4 +190,60 @@ impl GoldRushClient {
     pub fn all_chains_service(&self) -> AllChainsService {
         AllChainsService::new(Arc::clone(&self.ctx))
     }
+
+    /// Access streaming endpoints with default configuration.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use goldrush_sdk::*;
+    /// use goldrush_sdk::models::streaming::*;
+    /// use futures_util::StreamExt;
+    ///
+    /// # async fn example() -> Result<(), goldrush_sdk::Error> {
+    /// let client = GoldRushClient::new("YOUR_API_KEY", Default::default())?;
+    /// let service = client.streaming_service();
+    ///
+    /// let params = WalletActivityParams {
+    ///     chain_name: StreamingChain::BaseMainnet,
+    ///     wallet_addresses: vec!["0x...".to_string()],
+    /// };
+    ///
+    /// let (mut stream, handle) = service.subscribe_to_wallet_activity(params).await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[cfg(feature = "streaming")]
+    pub fn streaming_service(&self) -> crate::services::StreamingService {
+        crate::services::StreamingService::new(
+            self.ctx.api_key.clone(),
+            crate::streaming::StreamingConfig::default(),
+        )
+    }
+
+    /// Access streaming endpoints with custom configuration.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use goldrush_sdk::*;
+    /// use goldrush_sdk::streaming::StreamingConfig;
+    ///
+    /// # async fn example() -> Result<(), goldrush_sdk::Error> {
+    /// let client = GoldRushClient::new("YOUR_API_KEY", Default::default())?;
+    ///
+    /// let config = StreamingConfig::builder()
+    ///     .max_reconnect_attempts(10)
+    ///     .on_connected(|| println!("Connected!"))
+    ///     .build();
+    ///
+    /// let service = client.streaming_service_with_config(config);
+    /// # Ok(())
+    /// # }
+    /// ```
+    #[cfg(feature = "streaming")]
+    pub fn streaming_service_with_config(
+        &self,
+        config: crate::streaming::StreamingConfig,
+    ) -> crate::services::StreamingService {
+        crate::services::StreamingService::new(self.ctx.api_key.clone(), config)
+    }
 }

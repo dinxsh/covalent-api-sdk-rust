@@ -15,13 +15,25 @@ A Rust client library for the [GoldRush blockchain data APIs](https://goldrush.d
 - 🔗 **Multi-chain support** (Ethereum, Polygon, BSC, Avalanche, and more)
 - 📄 **Built-in pagination helpers**
 - 🧪 **Extensive test coverage**
+- 📡 **Real-time streaming** via WebSocket GraphQL subscriptions (optional)
 
 ## Supported Endpoints
 
+### REST APIs (36 endpoints)
 - **Token Balances** - Get ERC-20 token balances for any address
 - **Transactions** - Fetch transaction history with detailed information
 - **NFTs** - Query NFT holdings and metadata
 - **Historical Data** - Access portfolio valuations over time
+- **Pricing** - Token prices and historical data
+- **Security** - Token approvals and security analysis
+
+### Real-Time Streaming APIs (8 endpoints) - Optional Feature
+- **OHLCV Subscriptions** - Real-time candlestick data for trading pairs and tokens
+- **New DEX Pairs** - Live notifications for newly created liquidity pairs
+- **Pair Updates** - Real-time price, volume, and liquidity updates
+- **Wallet Activity** - Monitor transactions and transfers in real-time
+- **Token Search** - Search for tokens across chains
+- **P&L Queries** - Unrealized profit/loss for tokens and wallets
 
 ## Quick Start
 
@@ -29,8 +41,11 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-goldrush-sdk = "0.1.0"
+goldrush-sdk = "0.2.0"
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
+
+# Optional: Enable streaming support
+# goldrush-sdk = { version = "0.2.0", features = ["streaming"] }
 ```
 
 ### Basic Usage
@@ -262,6 +277,113 @@ while let Some(transactions) = iter.next().await? {
         println!("Transaction: {}", tx.tx_hash);
     }
 }
+```
+
+## Real-Time Streaming (Optional)
+
+Enable the `streaming` feature to access real-time WebSocket subscriptions:
+
+```toml
+[dependencies]
+goldrush-sdk = { version = "0.2.0", features = ["streaming"] }
+futures-util = "0.3"
+```
+
+### Wallet Activity Stream
+
+Monitor wallet transactions in real-time:
+
+```rust
+use goldrush_sdk::models::streaming::*;
+use futures_util::StreamExt;
+
+let service = client.streaming_service();
+
+let params = WalletActivityParams {
+    chain_name: StreamingChain::BaseMainnet,
+    wallet_addresses: vec!["0x...".to_string()],
+};
+
+let (mut stream, handle) = service.subscribe_to_wallet_activity(params).await?;
+
+while let Some(result) = stream.next().await {
+    match result {
+        Ok(transactions) => {
+            for tx in transactions {
+                println!("New TX: {} - {} -> {}",
+                    tx.tx_hash, tx.from_address, tx.to_address);
+            }
+        }
+        Err(e) => eprintln!("Error: {}", e),
+    }
+}
+
+handle.unsubscribe().await?;
+```
+
+### OHLCV Price Data
+
+Stream real-time candlestick data:
+
+```rust
+use goldrush_sdk::models::streaming::*;
+
+let params = OhlcvPairsParams {
+    chain_name: StreamingChain::BaseMainnet,
+    pair_addresses: vec!["0x9c087Eb773291e50CF6c6a90ef0F4500e349B903".to_string()],
+    interval: StreamingInterval::OneMinute,
+    timeframe: StreamingTimeframe::OneHour,
+    limit: Some(10),
+};
+
+let (mut stream, handle) = service.subscribe_to_ohlcv_pairs(params).await?;
+
+while let Some(result) = stream.next().await {
+    match result {
+        Ok(candles) => {
+            for candle in candles {
+                println!("OHLC: O:{:.4} H:{:.4} L:{:.4} C:{:.4}",
+                    candle.open, candle.high, candle.low, candle.close);
+            }
+        }
+        Err(e) => eprintln!("Error: {}", e),
+    }
+}
+```
+
+### Token Search
+
+Search for tokens across chains:
+
+```rust
+let params = TokenSearchParams {
+    query: "USDC".to_string(),
+};
+
+let results = service.search_token(params).await?;
+
+for token in results {
+    println!("{} - ${:.2} market cap",
+        token.base_token.contract_name,
+        token.market_cap);
+}
+```
+
+### Streaming Configuration
+
+Customize WebSocket behavior:
+
+```rust
+use goldrush_sdk::streaming::StreamingConfig;
+
+let config = StreamingConfig::builder()
+    .max_reconnect_attempts(10)
+    .on_connected(|| println!("Connected!"))
+    .on_error(|e| eprintln!("Error: {}", e))
+    .auto_resubscribe(true)
+    .build();
+
+let service = client.streaming_service_with_config(config);
 ```
 
 ## Running Examples

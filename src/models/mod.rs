@@ -7,6 +7,9 @@ pub mod approvals;
 pub mod bitcoin;
 pub mod all_chains;
 
+#[cfg(feature = "streaming")]
+pub mod streaming;
+
 use serde::Deserialize;
 
 /// Pagination information returned by the API.

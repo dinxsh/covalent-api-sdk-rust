@@ -11,6 +11,9 @@ pub mod security_service;
 pub mod bitcoin_service;
 pub mod all_chains_service;
 
+#[cfg(feature = "streaming")]
+pub mod streaming_service;
+
 use crate::{ClientConfig, Error, MetricsCollector};
 use reqwest::{Client as HttpClient, Method, RequestBuilder, StatusCode};
 use serde::de::DeserializeOwned;
@@ -155,3 +158,6 @@ pub use pricing_service::PricingService;
 pub use security_service::SecurityService;
 pub use bitcoin_service::BitcoinService;
 pub use all_chains_service::AllChainsService;
+
+#[cfg(feature = "streaming")]
+pub use streaming_service::StreamingService;

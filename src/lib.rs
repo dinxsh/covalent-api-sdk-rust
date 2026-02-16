@@ -33,6 +33,10 @@ pub mod chains;
 /// Shared types (QuoteCurrency, GasEventType, re-exports Chain).
 pub mod types;
 
+/// Streaming module for WebSocket-based real-time data subscriptions.
+#[cfg(feature = "streaming")]
+pub mod streaming;
+
 // Production readiness modules
 mod tracing;
 mod rate_limit;
@@ -56,6 +60,9 @@ pub use services::base_service::{BlockHeightsOptions, LogEventsByAddressOptions,
 pub use services::pricing_service::PricingOptions;
 pub use services::all_chains_service::{MultiChainTxOptions, MultiChainBalancesOptions};
 pub use services::{BalanceService, TransactionService, NftService, BaseService, PricingService, SecurityService, BitcoinService, AllChainsService};
+
+#[cfg(feature = "streaming")]
+pub use services::StreamingService;
 
 // Production readiness exports
 pub use tracing::{RequestId, TracingContext};

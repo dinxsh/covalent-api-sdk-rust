@@ -29,7 +29,25 @@ pub enum Error {
     /// Invalid configuration provided.
     #[error("configuration error: {0}")]
     Config(String),
+
+    /// Streaming-related errors.
+    #[cfg(feature = "streaming")]
+    #[error("streaming error: {0}")]
+    Streaming(String),
+
+    /// WebSocket connection errors.
+    #[cfg(feature = "streaming")]
+    #[error("WebSocket error: {0}")]
+    WebSocket(String),
+
+    /// GraphQL errors from the streaming API.
+    #[cfg(feature = "streaming")]
+    #[error("GraphQL error: {0}")]
+    GraphQL(String),
 }
 
 /// Result type alias for GoldRush SDK operations.
 pub type Result<T> = std::result::Result<T, Error>;
+
+/// Convenience alias for GoldRushError
+pub type GoldRushError = Error;
